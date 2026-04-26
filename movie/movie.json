@@ -1,0 +1,42 @@
+[
+  {
+    "id": 1,
+    "title": "Mickey 17",
+    "director": "Bong Joon-ho",
+    "year": 2025,
+    "review": "A darkly comedic sci-fi thriller with brilliant social commentary.",
+    "rating": 4
+  },
+  {
+    "id": 2,
+    "title": "Superman",
+    "director": "James Gunn",
+    "year": 2025,
+    "review": "A hopeful and earnest return to the classic superhero spirit.",
+    "rating": 4
+  },
+  {
+    "id": 3,
+    "title": "Thunderbolts",
+    "director": "Jake Schreier",
+    "year": 2025,
+    "review": "A fun team-up with unexpected heart and great chemistry.",
+    "rating": 4
+  },
+  {
+    "id": 4,
+    "title": "The Amateur",
+    "director": "James Hawes",
+    "year": 2025,
+    "review": "A gripping spy thriller with a compelling lead performance.",
+    "rating": 4
+  },
+  {
+    "id": 5,
+    "title": "Sinners",
+    "director": "Ryan Coogler",
+    "year": 2025,
+    "review": "A bold and atmospheric genre-blend that pushes boundaries.",
+    "rating": 5
+  }
+]
