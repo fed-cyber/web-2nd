@@ -20,9 +20,30 @@ function readMovies(callback) {
     });
 }
 
+function writeMovies(movies, callback) {
+    fs.writeFile(DATA_FILE, JSON.stringify(movies, null, 2), 'utf8', (err) => {
+        callback(err);
+    });
+}
+
 function getIdFromUrl(url) {
     const parts = url.split('/');
     return parseInt(parts[2], 10);
+}
+
+function parseBody(req, callback) {
+    let body = '';
+    req.on('data', chunk => {
+        body += chunk.toString();
+    });
+    req.on('end', () => {
+        try {
+            const data = JSON.parse(body);
+            callback(null, data);
+        } catch (err) {
+            callback(err, null);
+        }
+    });
 }
 
 const server = http.createServer((req, res) => {
@@ -81,6 +102,118 @@ const server = http.createServer((req, res) => {
         return;
     }
 
+    if (req.url === '/movies' && req.method === 'POST') {
+        parseBody(req, (err, newMovie) => {
+            if (err) {
+                res.writeHead(400);
+                res.end(JSON.stringify({ error: 'Invalid JSON body' }));
+                return;
+            }
+
+            readMovies((err, movies) => {
+                if (err) {
+                    res.writeHead(500);
+                    res.end(JSON.stringify({ error: 'Failed to read movies data' }));
+                    return;
+                }
+
+                const maxId = movies.reduce((max, m) => m.id > max ? m.id : max, 0);
+                newMovie.id = maxId + 1;
+
+                movies.push(newMovie);
+
+                writeMovies(movies, (err) => {
+                    if (err) {
+                        res.writeHead(500);
+                        res.end(JSON.stringify({ error: 'Failed to save movie' }));
+                        return;
+                    }
+
+                    res.writeHead(201);
+                    res.end(JSON.stringify(newMovie));
+                });
+            });
+        });
+        return;
+    }
+
+    if (req.url.startsWith('/movies/') && req.method === 'PUT') {
+        const id = getIdFromUrl(req.url);
+
+        parseBody(req, (err, updatedData) => {
+            if (err) {
+                res.writeHead(400);
+                res.end(JSON.stringify({ error: 'Invalid JSON body' }));
+                return;
+            }
+
+            readMovies((err, movies) => {
+                if (err) {
+                    res.writeHead(500);
+                    res.end(JSON.stringify({ error: 'Failed to read movies data' }));
+                    return;
+                }
+
+                const index = movies.findIndex(m => m.id === id);
+
+                if (index === -1) {
+                    res.writeHead(404);
+                    res.end(JSON.stringify({ error: `Movie with id ${id} not found` }));
+                    return;
+                }
+
+                movies[index] = { ...movies[index], ...updatedData, id: id };
+
+                writeMovies(movies, (err) => {
+                    if (err) {
+                        res.writeHead(500);
+                        res.end(JSON.stringify({ error: 'Failed to save movie' }));
+                        return;
+                    }
+
+                    res.writeHead(200);
+                    res.end(JSON.stringify(movies[index]));
+                });
+            });
+        });
+        return;
+    }
+
+    if (req.url.startsWith('/movies/') && req.method === 'DELETE') {
+        const id = getIdFromUrl(req.url);
+
+        readMovies((err, movies) => {
+            if (err) {
+                res.writeHead(500);
+                res.end(JSON.stringify({ error: 'Failed to read movies data' }));
+                return;
+            }
+
+            const index = movies.findIndex(m => m.id === id);
+
+            if (index === -1) {
+                res.writeHead(404);
+                res.end(JSON.stringify({ error: `Movie with id ${id} not found` }));
+                return;
+            }
+
+            // Remove movie from array
+            const deletedMovie = movies.splice(index, 1)[0];
+
+            writeMovies(movies, (err) => {
+                if (err) {
+                    res.writeHead(500);
+                    res.end(JSON.stringify({ error: 'Failed to delete movie' }));
+                    return;
+                }
+
+                res.writeHead(200);
+                res.end(JSON.stringify({ message: `Movie '${deletedMovie.title}' deleted successfully` }));
+            });
+        });
+        return;
+    }
+
     res.writeHead(404);
     res.end(JSON.stringify({ error: 'Route not found' }));
 });
@@ -88,7 +221,10 @@ const server = http.createServer((req, res) => {
 server.listen(PORT, () => {
     console.log(`🎬 Movie Review API running at http://localhost:${PORT}`);
     console.log(`📽️  Available endpoints:`);
-    console.log(`   GET  http://localhost:${PORT}/           - Welcome message`);
-    console.log(`   GET  http://localhost:${PORT}/movies     - List all movies`);
-    console.log(`   GET  http://localhost:${PORT}/movies/:id - Get single movie`);
+    console.log(`   GET    http://localhost:${PORT}/           - Welcome message`);
+    console.log(`   GET    http://localhost:${PORT}/movies     - List all movies`);
+    console.log(`   GET    http://localhost:${PORT}/movies/:id - Get single movie`);
+    console.log(`   POST   http://localhost:${PORT}/movies     - Create new movie`);
+    console.log(`   PUT    http://localhost:${PORT}/movies/:id - Update movie`);
+    console.log(`   DELETE http://localhost:${PORT}/movies/:id - Delete movie`);
 });
