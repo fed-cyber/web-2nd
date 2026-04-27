@@ -20,6 +20,11 @@ function readMovies(callback) {
     });
 }
 
+function getIdFromUrl(url) {
+    const parts = url.split('/');
+    return parseInt(parts[2], 10);
+}
+
 const server = http.createServer((req, res) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
@@ -52,6 +57,30 @@ const server = http.createServer((req, res) => {
         return;
     }
 
+    if (req.url.startsWith('/movies/') && req.method === 'GET') {
+        const id = getIdFromUrl(req.url);
+        
+        readMovies((err, movies) => {
+            if (err) {
+                res.writeHead(500);
+                res.end(JSON.stringify({ error: 'Failed to read movies data' }));
+                return;
+            }
+
+            const movie = movies.find(m => m.id === id);
+
+            if (!movie) {
+                res.writeHead(404);
+                res.end(JSON.stringify({ error: `Movie with id ${id} not found` }));
+                return;
+            }
+
+            res.writeHead(200);
+            res.end(JSON.stringify(movie));
+        });
+        return;
+    }
+
     res.writeHead(404);
     res.end(JSON.stringify({ error: 'Route not found' }));
 });
@@ -59,6 +88,7 @@ const server = http.createServer((req, res) => {
 server.listen(PORT, () => {
     console.log(`🎬 Movie Review API running at http://localhost:${PORT}`);
     console.log(`📽️  Available endpoints:`);
-    console.log(`   GET  http://localhost:${PORT}/         - Welcome message`);
-    console.log(`   GET  http://localhost:${PORT}/movies   - List all movies`);
+    console.log(`   GET  http://localhost:${PORT}/           - Welcome message`);
+    console.log(`   GET  http://localhost:${PORT}/movies     - List all movies`);
+    console.log(`   GET  http://localhost:${PORT}/movies/:id - Get single movie`);
 });
