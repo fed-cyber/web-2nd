@@ -197,7 +197,6 @@ const server = http.createServer((req, res) => {
                 return;
             }
 
-            // Remove movie from array
             const deletedMovie = movies.splice(index, 1)[0];
 
             writeMovies(movies, (err) => {
